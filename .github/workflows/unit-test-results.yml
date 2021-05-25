@@ -27,16 +27,19 @@ jobs:
     steps:
       - name: Download and Extract Artifacts
         run: |
+          mkdir artifacts && cd artifacts
+          IFS=$'\n'
           for artifact in $(gh api ${{ github.event.workflow_run.artifacts_url }} -q '.artifacts[] | {name: .name, url: .archive_download_url}')
           do
             name="$(jq -r .name <<<$artifact)"
             gh api "$(jq -r .url <<<$artifact)" > "$name.zip"
             unzip -d "$name" "$name.zip"
-            rm "$name.zip"
           done
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         with:
           commit: ${{ github.event.workflow_run.head_sha }}
-          files: "artifacts/*/**/*.xml"
+          files: "artifacts/**/*.xml"
